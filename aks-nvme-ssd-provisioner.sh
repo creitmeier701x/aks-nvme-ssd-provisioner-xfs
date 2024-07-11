@@ -14,7 +14,7 @@ STRIPE_WIDTH=$(expr $SSD_NVME_DEVICE_COUNT \* $STRIDE || true)
 
 
 # Checking if provisioning already happend
-if [[ "$(ls -A /pv-disks)" ]]
+if [ -e /pv-disks ]
 then
   echo 'Volumes already present in "/pv-disks"'
   echo -e "\n$(ls -Al /pv-disks | tail -n +2)\n"
@@ -31,7 +31,7 @@ case $SSD_NVME_DEVICE_COUNT in
   ;;
 "1")
   mkfs.xfs $SSD_NVME_DEVICE_LIST -f
-  DEVICE=$RAID_DEVICE
+  DEVICE=$SSD_NVME_DEVICE_LIST
   ;;
 *)
   mdadm --create --verbose $RAID_DEVICE --level=0 -c ${RAID_CHUNK_SIZE} \
@@ -41,14 +41,14 @@ case $SSD_NVME_DEVICE_COUNT in
     sleep 1
   done
   echo "Raid0 device $RAID_DEVICE has been created with disks ${SSD_NVME_DEVICE_LIST[*]}"
-  mkfs.xfs -m 0 -b $FILESYSTEM_BLOCK_SIZE -E stride=$STRIDE,stripe-width=$STRIPE_WIDTH $RAID_DEVICE
+  mkfs.xfs $RAID_DEVICE
   DEVICE=$RAID_DEVICE
   ;;
 esac
-
+echo "Filesystem has been created on $DEVICE"
 UUID=$(blkid -s UUID -o value $DEVICE)
 mkdir -p /pv-disks/$UUID
-mount -o defaults,noatime,discard,nobarrier --uuid $UUID /pv-disks/$UUID
+mount --uuid $UUID /pv-disks/$UUID
 echo "Device $DEVICE has been mounted to /pv-disks/$UUID"
 echo "NVMe SSD provisioning is done and I will go to sleep now"
 

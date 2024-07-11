@@ -31,6 +31,7 @@ case $SSD_NVME_DEVICE_COUNT in
   ;;
 "1")
   mkfs.xfs $SSD_NVME_DEVICE_LIST -f
+  DEVICE=$RAID_DEVICE
   ;;
 *)
   mdadm --create --verbose $RAID_DEVICE --level=0 -c ${RAID_CHUNK_SIZE} \
@@ -40,7 +41,8 @@ case $SSD_NVME_DEVICE_COUNT in
     sleep 1
   done
   echo "Raid0 device $RAID_DEVICE has been created with disks ${SSD_NVME_DEVICE_LIST[*]}"
-  mkfs.xfs $SSD_NVME_DEVICE_LIST -f
+  mkfs.xfs -m 0 -b $FILESYSTEM_BLOCK_SIZE -E stride=$STRIDE,stripe-width=$STRIPE_WIDTH $RAID_DEVICE
+  DEVICE=$RAID_DEVICE
   ;;
 esac
 

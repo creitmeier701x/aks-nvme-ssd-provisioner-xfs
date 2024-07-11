@@ -70,10 +70,44 @@ spec:
     spec:
       serviceAccountName: local-storage-admin
       nodeSelector:
-        kubernetes.azure.com/aks-local-ssd: "true"
+        aks-local-ssd: "true"
       initContainers:
         - name: aks-nvme-ssd-provisioner
-          image: ams0/aks-nvme-ssd-provisioner:v1.0.2
+          image: apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  namespace: kube-system
+  name: aks-nvme-ssd-provisioner
+  labels:
+    app: aks-nvme-ssd-provisioner
+spec:
+  selector:
+    matchLabels:
+      name: aks-nvme-ssd-provisioner
+  template:
+    metadata:
+      labels:
+        name: aks-nvme-ssd-provisioner
+    spec:
+      automountServiceAccountToken: false
+      nodeSelector:
+        kubernetes.azure.com/aks-local-ssd: "true"
+      priorityClassName: system-node-critical
+      containers:
+        - name: aks-nvme-ssd-provisioner
+          image: conner701x/aks-nvme-ssd-provisioner-xfs
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - mountPath: /pv-disks
+              name: pv-disks
+              mountPropagation: "Bidirectional"
+      volumes:
+        - name: pv-disks
+          hostPath:
+            path: /pv-disks
+
           imagePullPolicy: Always
           securityContext:
             privileged: true
